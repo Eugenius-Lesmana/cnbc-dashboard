@@ -72,8 +72,16 @@ function tokenizeFormula(formula: string): Token[] {
       continue;
     }
 
-    if (/[0-9.]/.test(char)) {
+    if (/[0-9]/.test(char)) {
       let end = index + 1;
+      while (end < formula.length && /[A-Za-z0-9_]/.test(formula[end])) end += 1;
+      const raw = formula.slice(index, end);
+      if (/[A-Za-z_]/.test(raw)) {
+        tokens.push({ kind: "identifier", value: raw });
+        index = end;
+        continue;
+      }
+
       while (end < formula.length && /[0-9.]/.test(formula[end])) end += 1;
       const value = Number.parseFloat(formula.slice(index, end));
       if (!Number.isFinite(value)) throw new Error("Formula contains an invalid number.");
