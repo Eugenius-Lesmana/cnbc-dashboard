@@ -130,7 +130,7 @@ button {
 
 .status-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -597,6 +597,11 @@ th.sticky {
 .pill.error {
   color: #b42318;
   background: #fee4e2;
+}
+
+.pill.stale {
+  color: #b54708;
+  background: #fef0c7;
 }
 
 .pill.idle {

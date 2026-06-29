@@ -25,6 +25,8 @@ type SortState = {
   direction: "asc" | "desc";
 };
 
+const staleAfterMs = 10 * 60 * 1000;
+
 const emptyData: AppData = {
   watchlist: [],
   settings: {
@@ -200,6 +202,7 @@ function App() {
 
   const loadingCount = rows.filter((row) => row.status === "loading").length;
   const errorCount = rows.filter((row) => row.status === "error").length;
+  const staleCount = rows.filter((row) => row.status === "ready" && isSnapshotStale(row)).length;
 
   return (
     <main className="app-shell">
@@ -251,6 +254,10 @@ function App() {
         <div>
           <span className="status-value">{errorCount}</span>
           <span className="status-label">Failed</span>
+        </div>
+        <div>
+          <span className="status-value">{staleCount}</span>
+          <span className="status-label">Stale</span>
         </div>
         <div>
           <span className="status-value">{data.settings.refreshConcurrency}</span>
@@ -586,8 +593,15 @@ function SortIcon({ sort, metricId }: { sort: SortState; metricId: string }) {
 function StatusPill({ snapshot }: { snapshot: StockSnapshot }) {
   if (snapshot.status === "loading") return <span className="pill loading">Loading</span>;
   if (snapshot.status === "error") return <span className="pill error" title={snapshot.error}>Failed</span>;
-  if (snapshot.status === "ready") return <span className="pill ready">Fresh</span>;
+  if (snapshot.status === "ready") {
+    return isSnapshotStale(snapshot) ? <span className="pill stale">Stale</span> : <span className="pill ready">Fresh</span>;
+  }
   return <span className="pill idle">Not loaded</span>;
+}
+
+function isSnapshotStale(snapshot: StockSnapshot) {
+  const refreshedAt = snapshot.fetchedAt ? new Date(snapshot.fetchedAt).getTime() : 0;
+  return refreshedAt <= 0 || Date.now() - refreshedAt > staleAfterMs;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
