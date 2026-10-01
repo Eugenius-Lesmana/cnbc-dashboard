@@ -25,9 +25,8 @@ export function evaluateFormula(formula: string, values: FormulaValueMap): numbe
     }
 
     if (token.kind === "identifier") {
-      const value = values[token.value];
-      const numericValue = typeof value === "number" ? value : Number.parseFloat(String(value ?? "").replace(/,/g, ""));
-      if (!Number.isFinite(numericValue)) return null;
+      const numericValue = toNumber(values[token.value]);
+      if (numericValue === null) return null;
       stack.push(numericValue);
       continue;
     }
@@ -47,6 +46,15 @@ export function evaluateFormula(formula: string, values: FormulaValueMap): numbe
 
   if (stack.length !== 1 || !Number.isFinite(stack[0])) return null;
   return stack[0];
+}
+
+// Only genuine numbers count. parseFloat("2026-11-05") would silently return 2026, so strings must match fully.
+function toNumber(value: number | string | null | undefined): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/,/g, "").trim();
+  if (!/^-?(\d+\.?\d*|\.\d+)$/.test(cleaned)) return null;
+  return Number.parseFloat(cleaned);
 }
 
 export function getFormulaIdentifiers(formula: string): string[] {
