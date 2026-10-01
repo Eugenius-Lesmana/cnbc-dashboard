@@ -4,14 +4,17 @@ import { evaluateFormula } from "../shared/formula.js";
 import type { MetricDefinition, MetricType, StockSnapshot } from "../shared/types.js";
 
 const CNBC_BASE_URL = "https://www.cnbc.com/quotes";
+const FETCH_TIMEOUT_MS = 15_000;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 export function safeFloat(value: string | null | undefined): number | null {
   if (!value) return null;
-  const cleaned = value.replace(/,/g, "").replace(/[–-]/g, "").trim();
-  if (!cleaned) return null;
+  // Normalise the Unicode minus (U+2212), keep a leading "-" so negative values stay negative.
+  const cleaned = value.replace(/,/g, "").replace(/\u2212/g, "-").trim();
+  // CNBC uses a lone dash for "no data".
+  if (!cleaned || /^[-–—]$/.test(cleaned)) return null;
   const parsed = Number.parseFloat(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -132,7 +135,9 @@ export async function fetchCnbcStock(
   const response = await fetch(`${CNBC_BASE_URL}/${encodeURIComponent(symbol)}`, {
     headers: {
       "User-Agent": USER_AGENT
-    }
+    },
+    // Without a timeout one stalled request would hang the whole refresh.
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
   });
 
   if (!response.ok) {
